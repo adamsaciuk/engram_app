@@ -453,3 +453,21 @@ test('setup by a folder pick: the memory is created, rules installed, the comman
     assert.ok(c.items.find((i) => i.key === 'rules').ok);
     delete process.env.ENGRAM_CLAUDE_HOME;
 });
+
+test('a newer Engram refreshes its own instruction in CLAUDE.md at start; a CLAUDE.md with no block is left alone', async () => {
+    const setup = await import('../core/setup.mjs');
+    const home = mkdtempSync(join(tmpdir(), 'engram-refresh-'));
+    process.env.ENGRAM_CLAUDE_HOME = home;
+    const file = join(home, 'CLAUDE.md');
+    writeFileSync(file, '# Mine\n\nkeep this\n');
+    assert.equal(setup.refreshInstruction().action, 'unchanged', 'no block: nothing installed behind the person\'s back');
+    assert.doesNotMatch(readFileSync(file, 'utf8'), /engram:rules/);
+    installClaudeBlock(file, RULES_VERSION - 1);
+    assert.equal(installedRulesVersion(file), RULES_VERSION - 1);
+    const r = setup.refreshInstruction();
+    assert.equal(r.action, 'updated');
+    assert.equal(installedRulesVersion(file), RULES_VERSION);
+    assert.match(readFileSync(file, 'utf8'), /keep this/);
+    assert.equal(setup.refreshInstruction().action, 'unchanged');
+    delete process.env.ENGRAM_CLAUDE_HOME;
+});

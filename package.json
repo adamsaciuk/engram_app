@@ -1,7 +1,7 @@
 {
     "name": "engram",
     "productName": "Engram",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "description": "Engram: the memory an AI keeps for one person. A private git repository that is also an Obsidian vault, the Cortex of Context Containers, Echos a session reads, budgeted recall, a tray and a local server. Zero-dependency core.",
     "private": true,
     "license": "UNLICENSED",

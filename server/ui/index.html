@@ -255,7 +255,7 @@
             else if (s.contradictions > 0 || (s.rulesInstalled && s.rulesInstalled !== s.rulesVersion)) state = 'attention';
             else if (s.sessionsActive > 0) state = 'listening';
             $('pill').className = 'pill ' + state;
-            $('pillText').textContent = !s.repository ? 'No memory yet. Open Setup and pick a folder.' : state === 'listening' ? `Listening. ${s.sessionsActive} session${s.sessionsActive === 1 ? '' : 's'} active. Last memory ${age(s.lastEngram)} ago.` : state === 'attention' ? (s.contradictions ? `${s.contradictions} contradiction${s.contradictions === 1 ? '' : 's'} to rule on.` : 'Rules version mismatch: open Setup.') : `${s.stats.engrams} memories in ${s.stats.containers} containers.`;
+            $('pillText').textContent = !s.repository ? 'No memory yet. Open Setup and pick a folder.' : state === 'listening' ? `Listening. ${s.sessionsActive} session${s.sessionsActive === 1 ? '' : 's'} active. Last memory ${age(s.lastEngram)} ago.` : state === 'attention' ? (s.contradictions ? `${s.contradictions} contradiction${s.contradictions === 1 ? '' : 's'} to rule on.` : 'Claude\'s instruction is out of date: open Setup and update it.') : `${s.stats.engrams} memories in ${s.stats.containers} containers.`;
             return s;
         } catch { $('pill').className = 'pill error'; $('pillText').textContent = 'server not answering'; return null; }
     }
@@ -543,7 +543,7 @@
             <div class="row2"><input type="text" id="suDir" value="${esc(s.repository || s.suggested || '')}" placeholder="a folder, e.g. C:\\ENGRAM"><button class="tiny" id="suBrowse">Browse…</button><button class="tiny primary" id="suUse">${s.exists ? 'Use this folder' : 'Use this folder'}</button></div>
             <div class="out" id="suOut"></div></div>
             <div class="step"><h3>Where things stand ${tick(allOk)}</h3><p>${allOk ? 'Everything is in place. Live shows memories as they arrive, Search finds anything, and the tray icon starts with Windows.' : 'Pick the folder above and this list fills in.'}</p><table class="lines">${lines.map((l) => `<tr><td class="k">${esc(l[0])}</td><td>${tick(l[1])}</td><td class="v">${l[2]}</td></tr>`).join('')}</table>
-            ${s.exists && !allOk ? '<div class="row2"><button class="tiny" id="suRules">Install the rules again</button><button class="tiny" id="suShim">Put the command on the path again</button></div>' : ''}</div>
+            ${s.exists && !allOk ? `<div class="row2"><button class="tiny" id="suRules">${s.rulesInstalled && s.rulesInstalled !== s.rulesVersion ? 'Update Claude\'s instruction' : 'Install Claude\'s instruction again'}</button><button class="tiny" id="suShim">Put the command on the path again</button></div>` : ''}</div>
             ${s.exists ? `<div class="step"><h3>Start fresh</h3><p>Forget the selected memory and begin again from an empty Setup. The folder and every note in it stay on disk; nothing is deleted.</p><div class="row2"><button class="tiny" id="suForget">Forget this memory</button></div></div>` : ''}
             <p style="max-width:820px"><a href="#how">How Engram works</a></p>`;
         $('suBrowse').onclick = async () => { $('suOut').textContent = 'a folder window is open on your desktop…'; const r = await post('/api/pick-folder', { startAt: $('suDir').value.trim() }); $('suOut').textContent = r.path ? '' : 'cancelled'; if (r.path) $('suDir').value = r.path; };

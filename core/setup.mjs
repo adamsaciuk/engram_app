@@ -81,7 +81,20 @@ export function addShimToPath() {
 export function prepare() {
     mkdirSync(configDir(), { recursive: true });
     if (!existsSync(configPath())) writeFileSync(configPath(), '{}\n', 'utf8');
-    return { shim: writeShim() };
+    return { shim: writeShim(), instruction: refreshInstruction() };
+}
+
+/**
+ * Engram owns the block it wrote into CLAUDE.md (D-A985): when a newer
+ * Engram starts and finds an older version of its block installed, it
+ * refreshes the block itself. A CLAUDE.md with no block is left alone;
+ * installing it is the folder pick's act.
+ */
+export function refreshInstruction() {
+    const file = claudeMdPath();
+    const installed = installedRulesVersion(file);
+    if (!installed || installed === RULES_VERSION) return { action: 'unchanged', version: installed };
+    return installClaudeBlock(file);
 }
 
 /**

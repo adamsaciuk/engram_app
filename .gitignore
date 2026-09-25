@@ -1,0 +1,7 @@
+# Engram, the application repo. A memory is never inside this repo.
+node_modules/
+dist/
+tools/serve.log
+tools/serve.log.old
+logs/
+*.tmp-*

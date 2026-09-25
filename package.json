@@ -1,0 +1,57 @@
+{
+    "name": "engram",
+    "productName": "Engram",
+    "version": "0.3.4",
+    "description": "Engram: the memory an AI keeps for one person. A private git repository that is also an Obsidian vault, the Cortex of Context Containers, Echos a session reads, budgeted recall, a tray and a local server. Zero-dependency core.",
+    "private": true,
+    "license": "UNLICENSED",
+    "author": "ATEO",
+    "type": "module",
+    "main": "tray/main.cjs",
+    "bin": {
+        "engram": "core/cli.mjs"
+    },
+    "scripts": {
+        "test": "node --test \"test/**/*.test.mjs\"",
+        "serve": "node server/server.mjs --serve",
+        "start": "electron .",
+        "dist": "node tray/build.mjs"
+    },
+    "devDependencies": {
+        "electron": "^37.0.0",
+        "electron-builder": "^26.0.0"
+    },
+    "build": {
+        "appId": "ateo.engram",
+        "productName": "Engram",
+        "asar": false,
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "core/**",
+            "server/**",
+            "tray/**",
+            "tools/launch.config.json",
+            "assets/engram.ico",
+            "assets/states/**",
+            "DOCS/New user CLAUDE.md",
+            "package.json"
+        ],
+        "win": {
+            "target": [
+                "nsis"
+            ],
+            "icon": "assets/engram.ico"
+        },
+        "nsis": {
+            "oneClick": false,
+            "perMachine": false,
+            "allowToChangeInstallationDirectory": true,
+            "differentialPackage": false,
+            "shortcutName": "Engram",
+            "runAfterFinish": true,
+            "createStartMenuShortcut": true
+        }
+    }
+}

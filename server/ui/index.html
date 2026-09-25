@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engram</title>
+<style>
+    :root { --bg: #0f1218; --panel: #151a23; --panel2: #1b2130; --line: #262d3a; --text: #e6e9ef; --dim: #8a93a6; --accent: #2dd4bf; --accent2: #1a8f82; --amber: #f2a541; --red: #ef5a5a; --mono: Consolas, "JetBrains Mono", ui-monospace, monospace; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", "Source Sans 3", system-ui, sans-serif; overflow: hidden; }
+    a { color: var(--accent); text-decoration: none; }
+    button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; font: inherit; cursor: pointer; }
+    button:hover { border-color: var(--accent2); }
+    button.primary { background: var(--accent); color: #06201c; border-color: var(--accent); font-weight: 600; }
+    button.tiny { padding: 2px 8px; font-size: 12px; }
+    button:disabled { opacity: .5; cursor: default; }
+    input[type=text], input[type=search], select, textarea { background: var(--bg); border: 1px solid var(--line); color: var(--text); padding: 8px 10px; border-radius: 6px; font: inherit; }
+    textarea { width: 100%; min-height: 64px; resize: vertical; line-height: 1.45; }
+    .mono { font-family: var(--mono); font-size: 12px; }
+    .dim { color: var(--dim); }
+    .accent { color: var(--accent); }
+    .amber { color: var(--amber); }
+    .red { color: var(--red); }
+    nav { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel); height: 46px; }
+    nav .mark { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--accent); position: relative; margin-right: 6px; }
+    nav .mark::after { content: ''; position: absolute; inset: 4px; border-radius: 50%; background: var(--accent); }
+    nav .tab { padding: 5px 10px; border-radius: 6px; color: var(--dim); cursor: pointer; }
+    nav .tab.on, nav .tab:hover { color: var(--text); background: var(--panel2); }
+    nav .spacer { flex: 1; }
+    nav .pill { font-size: 12px; color: var(--dim); padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+    nav .pill .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); margin-right: 6px; vertical-align: middle; }
+    nav .pill.idle .dot, nav .pill.listening .dot { background: var(--accent); }
+    nav .pill.listening .dot { animation: pulse 1.2s ease-out infinite; }
+    nav .pill.attention .dot { background: var(--amber); }
+    nav .pill.error .dot { background: var(--red); }
+    main { height: calc(100% - 46px); overflow: hidden; }
+    body.palette nav { display: none; }
+    body.palette main { height: 100%; }
+    .view { display: none; height: 100%; }
+    .view.on { display: block; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(45,212,191,.6); } 100% { box-shadow: 0 0 0 10px rgba(45,212,191,0); } }
+    @keyframes ripple { 0% { background: rgba(45,212,191,.25); } 100% { background: transparent; } }
+
+    /* search */
+    #search.on { display: grid; grid-template-rows: auto 1fr auto; height: 100%; }
+    .rhead { padding: 14px 16px 8px; }
+    .rhead input { width: 100%; font-size: 20px; padding: 10px 12px; }
+    .rhead .hint { font-size: 12px; color: var(--dim); margin-top: 6px; }
+    .rbody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 42%); overflow: hidden; border-top: 1px solid var(--line); }
+    .rlist { overflow: auto; padding: 8px 0; }
+    .rpane { overflow: auto; border-left: 1px solid var(--line); padding: 12px 14px; }
+    .band { margin: 4px 0 10px; }
+    .band h3 { margin: 6px 16px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); display: flex; align-items: center; gap: 8px; }
+    .band h3 .n { background: var(--panel2); border-radius: 999px; padding: 0 7px; color: var(--text); font-weight: 600; }
+    .regions { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 16px 6px; }
+    .region { border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; background: var(--panel); max-width: 100%; }
+    .region:hover { border-color: var(--accent2); }
+    .region.named { border-color: var(--accent2); }
+    .region b { display: block; font-size: 13px; }
+    .region small { color: var(--dim); }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; padding: 5px 16px; cursor: pointer; border-left: 2px solid transparent; }
+    .row:hover { background: var(--panel); }
+    .row.sel { background: var(--panel2); border-left-color: var(--accent); }
+    .row .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row .t.sup { text-decoration: line-through; color: var(--dim); }
+    .row .m { grid-column: 1 / -1; font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kind { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 4px; background: var(--panel2); color: var(--dim); margin-right: 6px; }
+    .kind.decision { color: var(--accent); }
+    .kind.contradicts { color: var(--amber); }
+    .kind.edited { color: var(--amber); }
+    .dec { padding: 4px 16px; display: grid; grid-template-columns: 1fr auto; gap: 10px; cursor: pointer; }
+    .dec:hover { background: var(--panel); }
+    .dec .m { font-size: 11px; color: var(--dim); white-space: nowrap; }
+    .cost { border-top: 1px solid var(--line); padding: 8px 16px; font-family: var(--mono); font-size: 12px; color: var(--dim); display: flex; gap: 14px; align-items: center; }
+    .cost .spacer { flex: 1; }
+    .empty { padding: 40px 24px; color: var(--dim); text-align: center; }
+    .empty .hint { font-family: var(--mono); font-size: 12px; margin-bottom: 20px; }
+    .empty .recent { text-align: left; max-width: 480px; margin: 0 auto; }
+    .empty .recent div { padding: 4px 0; cursor: pointer; color: var(--text); }
+    .empty .recent div:hover { color: var(--accent); }
+
+    /* echo detail and the form */
+    .echo h2 { margin: 0 0 4px; font-size: 16px; }
+    .crumb { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-bottom: 10px; }
+    .crumb span { cursor: pointer; }
+    .crumb span:hover { color: var(--accent); }
+    .supband { background: rgba(242,165,65,.12); border: 1px solid rgba(242,165,65,.4); color: var(--amber); padding: 6px 10px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; }
+    .supband span { cursor: pointer; text-decoration: underline; }
+    .echo .body { white-space: pre-wrap; margin-bottom: 12px; }
+    .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 12px 0 4px; }
+    blockquote.stim { margin: 0 0 8px; padding: 8px 12px; border-left: 3px solid var(--accent2); background: var(--panel); font-style: italic; white-space: pre-wrap; }
+    .links div { padding: 3px 0; cursor: pointer; }
+    .links div:hover { color: var(--accent); }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
+    .doc { white-space: pre-wrap; }
+    .form { max-width: 820px; }
+    .form .f { margin: 0 0 12px; }
+    .form label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin-bottom: 4px; }
+    .form input[type=text], .form select { width: 100%; }
+    .form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form .help { font-size: 12px; color: var(--dim); margin-top: 3px; }
+    .out { font-family: var(--mono); font-size: 12px; color: var(--dim); margin-top: 6px; white-space: pre-wrap; }
+    .out.err { color: var(--red); }
+
+    /* live */
+    #live.on { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+    .lhead { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .lstream { overflow: auto; }
+    .sess { padding: 10px 14px 4px; border-top: 1px solid var(--line); font-size: 12px; color: var(--dim); display: flex; gap: 12px; align-items: baseline; }
+    .sess b { color: var(--text); }
+    .sess .live { color: var(--accent); }
+    .ev { display: grid; grid-template-columns: 58px 1fr auto; gap: 10px; padding: 5px 14px; cursor: pointer; align-items: baseline; }
+    .ev:hover { background: var(--panel); }
+    .ev.new { animation: ripple 1.2s ease-out; }
+    .ev .path { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+    .ev .line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* cortex */
+    #cortex.on { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; height: 100%; }
+    .tree { overflow: auto; border-right: 1px solid var(--line); padding: 8px 0; }
+    .tree div { padding: 3px 12px 3px calc(12px + var(--d, 0px)); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; gap: 6px; align-items: center; }
+    .tree div:hover, .tree div.on { color: var(--accent); background: var(--panel); }
+    .tree small { color: var(--dim); }
+    .tree .flag { color: var(--amber); font-size: 10px; }
+    .tree .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .mappane { overflow: auto; padding: 14px 18px; }
+    .mappane h2 { margin: 0 0 4px; font-size: 18px; }
+    .list div { padding: 3px 0; cursor: pointer; }
+    .list div:hover { color: var(--accent); }
+
+    /* setup, add, echo, how */
+    #setup, #add, #how, #echo { overflow: auto; height: 100%; padding: 14px 18px; }
+    .step { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 0 0 12px; max-width: 820px; background: var(--panel); }
+    .step h3 { margin: 0 0 4px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+    .step p { margin: 4px 0 8px; color: var(--dim); }
+    .step .row2 { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+    .step .row2 input[type=text] { min-width: 260px; flex: 1; }
+    .state { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 1px 8px; border-radius: 999px; background: var(--panel2); color: var(--dim); }
+    .state.done { color: var(--accent); }
+    .state.todo { color: var(--amber); }
+    table.lines { border-collapse: collapse; width: 100%; }
+    table.lines td { padding: 3px 8px 3px 0; vertical-align: top; }
+    table.lines td.k { white-space: nowrap; color: var(--dim); width: 150px; }
+    table.lines td.v { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+    pre { white-space: pre-wrap; word-break: break-word; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font: 12.5px/1.5 var(--mono); margin: 0; }
+</style>
+</head>
+<body>
+<nav>
+    <span class="mark"></span><b style="letter-spacing:.06em">ENGRAM</b>
+    <span class="tab" data-v="live">Live</span>
+    <span class="tab" data-v="search">Search</span>
+    <span class="tab" data-v="setup">Setup</span>
+    <span class="spacer"></span>
+    <span class="pill" id="pill"><span class="dot"></span><span id="pillText">connecting…</span></span>
+    <button class="tiny primary" id="addBtn" title="Write a memory yourself">+ Add a memory</button>
+</nav>
+<main>
+    <section class="view" id="live">
+        <div class="lhead">
+            <b>Live</b>
+            <select id="lkind"><option value="">every kind</option><option value="decision">decisions</option><option value="artefact">artefacts</option><option value="action">actions</option><option value="learning">learnings</option></select>
+            <select id="lsession"><option value="">every session</option></select>
+            <button class="tiny" id="lpause">Pause</button>
+            <span class="spacer" style="flex:1"></span>
+            <span class="dim" id="lstate"></span>
+        </div>
+        <div class="lstream" id="lstream"></div>
+    </section>
+    <section class="view" id="search">
+        <div class="rhead">
+            <input type="text" id="q" placeholder="Search the memory: a project, a topic, a word" autocomplete="off" spellcheck="false">
+            <div class="hint" id="rhint">Type a project name and get everything about it. Enter searches, ↑ ↓ move, Enter on a row opens it.</div>
+        </div>
+        <div class="rbody">
+            <div class="rlist" id="rlist"><div class="empty" id="rempty"></div></div>
+            <div class="rpane" id="rpane"><span class="dim">Select a row to read the memory.</span></div>
+        </div>
+        <div class="cost" id="rcost"><span>Everything the memory holds is searchable. Nothing is hidden by a budget.</span></div>
+    </section>
+    <section class="view" id="echo"><div id="echoPane"></div></section>
+    <section class="view" id="add"><div id="addPane"></div></section>
+    <section class="view" id="cortex">
+        <div class="tree" id="tree"></div>
+        <div class="mappane" id="mappane"><span class="dim">Pick a container.</span></div>
+    </section>
+    <section class="view" id="setup"></section>
+    <section class="view" id="how">
+        <div style="max-width:760px;line-height:1.6">
+            <div class="lbl">The one sentence</div>
+            <p><b>Engram is the memory an AI keeps for one person.</b> Every session starts by remembering, works by recording, and ends by closing, in a folder on this computer that you own.</p>
+            <div class="lbl">The three words</div>
+            <p><b>Engram</b> is the application, the command, the act of writing one memory, and the memory itself. <b>Cortex</b> is the map of Context Containers: a folder tree with a map at the top of each folder. <b>Echo</b> is the short extract at the top of every engram; to read memory is to read Echos. Everything else is plain English.</p>
+            <div class="lbl">What is stored</div>
+            <p>One note per engram. At the top, the Echo: what was asked, what is now true, what to watch for. Below it, the engram: your words verbatim, what was done, the decision if there was one, the files produced and where they live. Links between engrams are typed: cites, supersedes, refines, confirms, contradicts, produced from, consolidates. Files never enter the memory; only the record of them does.</p>
+            <div class="lbl">How it is organised</div>
+            <p>The Cortex is a folder tree. A folder is a region of knowledge, as deep as the subject needs. At the top of every folder is a map, rebuilt by the tool from the engrams beneath it: a digest, the rulings in force, the strongest links out, the children, the known gaps. The maps are the table of contents.</p>
+            <div class="lbl">How the AI reads it</div>
+            <p>A session wakes on the root map, takes the brief of the project it is working on, then recalls on its task: every Echo scored, the regions the task names weighted, links followed one hop, the decisions in force first, cut at a token budget. It reports the route it took and what it spent. A second session on the same project picks up in one read.</p>
+            <div class="lbl">How you read it</div>
+            <p>Search works like a web search. Type a project name and you get its regions, its rulings in force and every memory under it. Type a topic and you get every Echo that speaks of it, best first. Live shows every memory arriving as sessions work, and you can add or edit a memory yourself.</p>
+            <div class="lbl">How it stays honest</div>
+            <p>To the AI an engram is immutable: a wrong one is answered by a new one that links it, and a decision that replaces another says so. Two rulings that cannot both stand are flagged for you; the tool never picks. Only you edit a memory, from this page, and the note keeps the date it was edited.</p>
+        </div>
+    </section>
+</main>
+<script>
+(() => {
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const api = async (p, opts) => { const r = await fetch(p, opts); return r.json(); };
+    const post = (p, body, method = 'POST') => api(p, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const PALETTE = new URLSearchParams(location.search).get('palette') === '1';
+    if (PALETTE) document.body.classList.add('palette');
+    const short = (p) => (p ? p.split('/').slice(-2).join('/') : 'root');
+    const age = (iso) => { if (!iso) return ''; const s = (Date.now() - Date.parse(iso)) / 1000; if (s < 60) return Math.round(s) + ' s'; if (s < 3600) return Math.round(s / 60) + ' min'; if (s < 86400) return Math.round(s / 3600) + ' h'; return Math.round(s / 86400) + ' d'; };
+    const hhmm = (iso) => (iso ? new Date(iso).toTimeString().slice(0, 8) : '');
+    const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem('engram:' + k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('engram:' + k, JSON.stringify(v)); } catch { /* fine */ } } };
+    const KINDS = ['action', 'learning', 'decision'];
+
+    // ------------------------------------------------------------ routing
+    let view = 'live';
+    let cameFrom = 'live'; // the view a memory or the add form was opened from: where Back and Escape return to
+    function route() {
+        const h = location.hash.replace(/^#/, '') || (PALETTE ? 'search' : 'live');
+        const [v, ...rest] = h.split('/');
+        const arg = rest.join('/');
+        const next = ['live', 'search', 'echo', 'add', 'cortex', 'setup', 'how'].includes(v) ? v : 'live';
+        if ((next === 'echo' || next === 'add') && view !== 'echo' && view !== 'add') cameFrom = view;
+        view = next;
+        for (const el of document.querySelectorAll('.view')) el.classList.toggle('on', el.id === view);
+        for (const el of document.querySelectorAll('nav .tab')) el.classList.toggle('on', el.dataset.v === view);
+        if (view === 'setup') loadSetup();
+        if (view === 'echo' && arg) showEcho(arg, $('echoPane'));
+        if (view === 'add') showAdd($('addPane'), arg ? decodeURIComponent(arg) : '');
+        if (view === 'live') startLive();
+        if (view === 'cortex') loadCortex(arg);
+        if (view === 'search') { $('q').focus(); if (!lastResult && !searching) emptyState(); }
+    }
+    window.addEventListener('hashchange', route);
+    for (const el of document.querySelectorAll('nav .tab')) el.onclick = () => { location.hash = el.dataset.v; };
+    $('addBtn').onclick = () => { location.hash = 'add'; };
+    const go = (h) => { location.hash = h; };
+    // Back never depends on the window's history (an app window may have none): it returns to the view the memory was opened from
+    const back = () => go(cameFrom || 'live');
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && (view === 'echo' || view === 'add') && !/TEXTAREA/.test(ev.target.tagName)) { ev.preventDefault(); back(); } });
+
+    // ------------------------------------------------------------- status
+    async function status() {
+        try {
+            const s = await api('/api/status');
+            let state = 'idle';
+            if (!s.repository) state = 'error';
+            else if (s.contradictions > 0 || (s.rulesInstalled && s.rulesInstalled !== s.rulesVersion)) state = 'attention';
+            else if (s.sessionsActive > 0) state = 'listening';
+            $('pill').className = 'pill ' + state;
+            $('pillText').textContent = !s.repository ? 'No memory yet. Open Setup and pick a folder.' : state === 'listening' ? `Listening. ${s.sessionsActive} session${s.sessionsActive === 1 ? '' : 's'} active. Last memory ${age(s.lastEngram)} ago.` : state === 'attention' ? (s.contradictions ? `${s.contradictions} contradiction${s.contradictions === 1 ? '' : 's'} to rule on.` : 'Rules version mismatch: open Setup.') : `${s.stats.engrams} memories in ${s.stats.containers} containers.`;
+            return s;
+        } catch { $('pill').className = 'pill error'; $('pillText').textContent = 'server not answering'; return null; }
+    }
+
+    // ------------------------------------------------------------- search
+    let lastResult = null;
+    let searching = false;
+    let rows = [];
+    let sel = -1;
+    $('q').addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); if (sel >= 0 && rows.length && $('q').value.trim() === (lastResult && lastResult.q)) go('echo/' + rows[sel].id); else doSearch(); }
+        else if (ev.key === 'ArrowDown') { ev.preventDefault(); select(Math.min(rows.length - 1, sel + 1)); }
+        else if (ev.key === 'ArrowUp') { ev.preventDefault(); select(Math.max(0, sel - 1)); }
+        else if (ev.key === 'Escape') { if ($('q').value) { $('q').value = ''; lastResult = null; emptyState(); } }
+    });
+    document.addEventListener('keydown', (ev) => {
+        if (view !== 'search' || ev.target === $('q') || /INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) return;
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); select(Math.min(rows.length - 1, sel + 1)); }
+        else if (ev.key === 'ArrowUp') { ev.preventDefault(); select(Math.max(0, sel - 1)); }
+        else if (ev.key === 'Enter' && sel >= 0) go('echo/' + rows[sel].id);
+        else if (ev.key === '/') { ev.preventDefault(); $('q').focus(); }
+    });
+    async function emptyState() {
+        const recents = store.get('recents', []);
+        let today = 0;
+        let regions = [];
+        try { const r = await api('/api/recent?n=200'); const d = new Date().toISOString().slice(0, 10); today = r.filter((e) => e.when.slice(0, 10) === d).length; } catch { /* fine */ }
+        try { const c = await api('/api/cortex'); if (Array.isArray(c)) regions = c.filter((x) => x.path && x.path.split('/').length === 1).sort((a, b) => (b.counts.engrams + b.counts.descendants) - (a.counts.engrams + a.counts.descendants)).slice(0, 12); } catch { /* fine */ }
+        if (lastResult || searching) return;
+        $('rlist').innerHTML = `<div class="empty">
+            ${regions.length ? '<div class="lbl">Projects and regions</div><div class="regions" style="justify-content:center">' + regions.map((x) => `<div class="region" data-q="${esc(x.path)}"><b>${esc(x.title)}</b><small>${x.counts.engrams + x.counts.descendants} memories${x.decisions ? ' · ' + x.decisions + ' rulings' : ''}</small></div>`).join('') + '</div>' : ''}
+            ${recents.length ? '<div class="lbl" style="margin-top:20px">Recent searches</div><div class="recent">' + recents.map((q) => `<div data-q="${esc(q)}">${esc(q)}</div>`).join('') + '</div>' : ''}
+            <div style="margin-top:20px">${today} memor${today === 1 ? 'y' : 'ies'} written today.</div>
+</div>`;
+        for (const el of $('rlist').querySelectorAll('[data-q]')) el.onclick = () => { $('q').value = el.dataset.q; doSearch(); };
+        $('rpane').innerHTML = '<span class="dim">Select a row to read the memory.</span>';
+        $('rcost').innerHTML = '<span>Everything the memory holds is searchable. Nothing is hidden by a budget.</span>';
+    }
+    async function doSearch() {
+        const q = $('q').value.trim();
+        if (!q) return;
+        $('rhint').textContent = 'searching…';
+        searching = true;
+        const r = await api(`/api/search?q=${encodeURIComponent(q)}`).finally(() => { searching = false; });
+        $('rhint').textContent = '';
+        if (r.error) { $('rlist').innerHTML = `<div class="empty">${esc(r.error)}</div>`; return; }
+        lastResult = r;
+        store.set('recents', [q, ...store.get('recents', []).filter((x) => x !== q)].slice(0, 5));
+        renderSearch(r);
+    }
+    function renderSearch(r) {
+        rows = [];
+        sel = -1;
+        const L = [];
+        if (r.regions.length) L.push(`<div class="band"><h3>Regions <span class="n">${r.regions.length}</span></h3><div class="regions">${r.regions.map((x) => `<div class="region${x.byName ? ' named' : ''}" data-p="${esc(x.path)}" title="${esc(x.line)}"><b>${esc(x.title)}</b><small>${esc(x.path)} · ${x.engrams} memories${x.decisions ? ' · ' + x.decisions + ' rulings' : ''}${x.gaps ? ' · ' + x.gaps + ' gaps' : ''}</small></div>`).join('')}</div></div>`);
+        if (r.decisions.length) L.push(`<div class="band"><h3>Rulings in force <span class="n">${r.decisions.length}</span></h3>${r.decisions.map((d) => `<div class="dec" data-id="${d.engram}"><span>${esc(d.text)}</span><span class="m">${esc(short(d.container))} · ${d.when.slice(0, 10)}</span></div>`).join('')}</div>`);
+        if (r.gaps.length) L.push(`<div class="band"><h3>Known gaps <span class="n">${r.gaps.length}</span></h3>${r.gaps.map((g) => `<div class="dec"><span class="dim">${esc(g.gap)}</span><span class="m">${esc(short(g.container))}</span></div>`).join('')}</div>`);
+        if (r.echos.length) L.push(`<div class="band"><h3>Memories <span class="n">${r.total}</span></h3>${r.echos.map((e) => { const i = rows.push(e) - 1; return `<div class="row" data-i="${i}"><span class="t${e.superseded ? ' sup' : ''}"><span class="kind ${e.kind}">${e.kind}</span>${esc(e.title || e.echo)}</span><span class="m">${esc(short(e.container))} · ${age(e.when)} ago${e.edited ? ' · edited' : ''}${e.why && e.why.length ? ' · ' + esc(e.why.join(', ')) : ''}</span></div>`; }).join('')}</div>`);
+        else L.push('<div class="empty">Nothing in the memory speaks of that.</div>');
+        $('rlist').innerHTML = L.join('');
+        for (const el of $('rlist').querySelectorAll('.region[data-p]')) el.onclick = () => go('cortex/' + el.dataset.p);
+        for (const el of $('rlist').querySelectorAll('.row')) { el.onclick = () => select(Number(el.dataset.i)); el.ondblclick = () => go('echo/' + rows[Number(el.dataset.i)].id); }
+        for (const el of $('rlist').querySelectorAll('.dec[data-id]')) el.onclick = () => go('echo/' + el.dataset.id);
+        $('rcost').innerHTML = `<span>${r.total} memor${r.total === 1 ? 'y' : 'ies'} in ${r.ms} ms${r.regions.filter((x) => x.byName).length ? ' · ' + r.regions.filter((x) => x.byName).map((x) => esc(x.title)).join(', ') + ' taken whole' : ''}</span>`;
+        if (rows.length) select(0);
+        else $('rpane').innerHTML = '<span class="dim">No memory matched.</span>';
+    }
+    function select(i) {
+        if (i < 0 || i >= rows.length) return;
+        sel = i;
+        for (const el of $('rlist').querySelectorAll('.row')) el.classList.toggle('sel', Number(el.dataset.i) === i);
+        const el = $('rlist').querySelector(`.row[data-i="${i}"]`);
+        if (el) el.scrollIntoView({ block: 'nearest' });
+        const e = rows[i];
+        $('rpane').innerHTML = `<div class="echo"><h2>${esc(e.title)}</h2><div class="crumb">${esc(e.container || 'root')} · ${esc(e.kind)} · ${e.when.slice(0, 16).replace('T', ' ')}${e.edited ? ' · edited ' + e.edited.slice(0, 10) : ''}</div>${e.superseded ? '<div class="supband">Superseded. Open the memory to see the ruling that replaced it.</div>' : ''}<div class="body">${esc(e.echo)}</div>${e.decision ? `<div class="lbl">Ruling</div><div class="doc accent">${esc(e.decision)}</div>` : ''}<div class="actions"><button class="tiny" id="openE">Open</button><button class="tiny" id="editE">Edit</button><button class="tiny" id="copyE">Copy</button></div></div>`;
+        $('openE').onclick = () => go('echo/' + e.id);
+        $('editE').onclick = () => go('echo/' + e.id + '/edit');
+        $('copyE').onclick = () => navigator.clipboard.writeText(e.echo);
+    }
+
+    // -------------------------------------------------------- echo detail
+    async function showEcho(arg, pane) {
+        const [id, mode] = arg.split('/');
+        pane.innerHTML = '<span class="dim">loading…</span>';
+        const r = await api('/api/echo/' + encodeURIComponent(id));
+        if (r.error) { pane.innerHTML = `<div class="empty">${esc(r.error)}</div>`; return; }
+        const e = r.engram;
+        if (mode === 'edit') { await showForm(pane, e); return; }
+        const crumbs = (e.container ? e.container.split('/') : []).map((seg, i, all) => `<span data-p="${esc(all.slice(0, i + 1).join('/'))}">${esc(seg)}</span>`).join(' / ') || 'root';
+        const linkGroups = Object.entries(r.linked).map(([k, list]) => `<div class="lbl">${esc(k.replace(/_/g, ' '))}</div><div class="links">${list.map((l) => `<div data-id="${l.id}"><span class="mono dim">${l.id}</span> ${esc(l.line)}${l.why ? ' <span class="dim">(' + esc(l.why) + ')</span>' : ''}</div>`).join('')}</div>`).join('');
+        pane.innerHTML = `<div class="echo" style="max-width:900px">
+            <div class="actions"><button class="tiny" id="backBtn">← Back</button><button class="tiny primary" id="editBtn">Edit</button><button class="tiny" id="copyD">Copy</button></div>
+            <h2>${esc(e.title)}</h2>
+            <div class="crumb">${crumbs} · ${esc(e.kind)} · ${e.when.replace('T', ' ').slice(0, 19)} · ${esc(e.device)} · ${esc(e.session || 'no session')}${e.edited ? ' · <span class="amber">edited ' + e.edited.replace('T', ' ').slice(0, 16) + '</span>' : ''}</div>
+            ${e.back && e.back.superseded_by && e.back.superseded_by.length ? `<div class="supband">Superseded by ${e.back.superseded_by.map((s) => `<span data-id="${s}">${s}</span>`).join(', ')}</div>` : ''}
+            <div class="lbl">Echo</div><div class="body">${esc(e.echo)}</div>
+            <div class="lbl">Stimulus, verbatim</div><blockquote class="stim">${esc(e.stimulus)}</blockquote>
+            ${e.done ? `<div class="lbl">Done</div><div class="doc">${esc(e.done)}</div>` : ''}
+            ${e.decision ? `<div class="lbl">Ruling</div><div class="doc accent">${esc(e.decision)}</div>` : ''}
+            ${r.artefacts.length ? `<div class="lbl">Files</div>${r.artefacts.map((a) => `<div>${esc(a.name)} <span class="dim">${esc(a.availability)} on ${esc(a.device)} · ${a.size} bytes</span><div class="mono dim">${esc(a.path)}</div></div>`).join('')}` : ''}
+            ${e.tags && e.tags.length ? `<div class="lbl">Tags</div><div class="dim">${e.tags.map(esc).join(' · ')}</div>` : ''}
+            ${linkGroups}
+            ${r.recalledBy.length ? `<div class="lbl">Sessions that recalled this</div>${r.recalledBy.map((t) => `<div class="dim">${t.when.slice(0, 16).replace('T', ' ')} · ${esc(t.session || 'no session')} · ${esc(t.device)} · ${esc(t.task)}</div>`).join('')}` : ''}
+            <div class="lbl">File</div><div class="mono dim">${esc(r.file || '')}</div>
+        </div>`;
+        $('backBtn').onclick = back;
+        $('editBtn').onclick = () => go('echo/' + e.id + '/edit');
+        $('copyD').onclick = () => navigator.clipboard.writeText(`${e.echo}\n\nStimulus: ${e.stimulus}${e.decision ? '\nRuling: ' + e.decision : ''}`);
+        for (const el of pane.querySelectorAll('[data-id]')) el.onclick = () => go('echo/' + el.dataset.id);
+        for (const el of pane.querySelectorAll('.crumb [data-p]')) el.onclick = () => go('cortex/' + el.dataset.p);
+    }
+
+    // ----------------------------------------------------- add and edit
+    async function containerOptions(selected) {
+        const list = await api('/api/cortex');
+        if (!Array.isArray(list)) return '<option value="">(no memory)</option>';
+        return list.filter((c) => c.path).map((c) => `<option value="${esc(c.path)}"${c.path === selected ? ' selected' : ''}>${esc(c.path)}${c.title && c.title !== c.path.split('/').pop() ? ' · ' + esc(c.title) : ''}</option>`).join('');
+    }
+    function formHtml(e, options) {
+        const v = (k) => esc(e ? e[k] : '');
+        return `<div class="form">
+            <div class="two"><div class="f"><label>Where it belongs</label><select id="fContainer"><option value="">pick a container</option>${options}<option value="__new">a new container…</option></select><input type="text" id="fNew" placeholder="new container path, e.g. orko/presets" style="display:none;margin-top:6px"></div>
+            <div class="f"><label>Kind</label><select id="fKind">${KINDS.map((k) => `<option value="${k}"${(e ? e.kind : 'action') === k ? ' selected' : ''}>${k}</option>`).join('')}${e && !KINDS.includes(e.kind) ? `<option value="${esc(e.kind)}" selected>${esc(e.kind)}</option>` : ''}</select></div></div>
+            <div class="f"><label>Name</label><input type="text" id="fName" value="${v('title')}" placeholder="two to five words"><div class="help">What the memory is called. A noun phrase, not a sentence.</div></div>
+            <div class="f"><label>Echo</label><textarea id="fEcho" placeholder="What a future session needs to know: what was asked, what is now true, what to watch for.">${v('echo')}</textarea></div>
+            <div class="f"><label>Your words, verbatim</label><textarea id="fStimulus" placeholder="What was said or asked, as it was said.">${v('stimulus')}</textarea></div>
+            <div class="f" id="fDecisionRow" style="display:${(e ? e.kind : '') === 'decision' ? '' : 'none'}"><label>The ruling, one sentence</label><input type="text" id="fDecision" value="${v('decision')}"></div>
+            <div class="f"><label>What was done</label><textarea id="fDone" style="min-height:44px">${v('done')}</textarea></div>
+            <div class="f"><label>Tags</label><input type="text" id="fTags" value="${esc(e && e.tags ? e.tags.join(', ') : '')}" placeholder="comma separated, optional"></div>
+            <div class="actions"><button class="primary" id="fSave">${e ? 'Save the edit' : 'Add the memory'}</button><button id="fCancel">Cancel</button><span class="dim" id="fNote">${e ? 'The id, time and device stay. The note keeps the date of the edit.' : 'Written now, on this computer, in your name.'}</span></div>
+            <div class="out" id="fOut"></div>
+        </div>`;
+    }
+    function wireForm(onSave) {
+        $('fContainer').onchange = () => { $('fNew').style.display = $('fContainer').value === '__new' ? '' : 'none'; if ($('fContainer').value === '__new') $('fNew').focus(); };
+        $('fKind').onchange = () => { $('fDecisionRow').style.display = $('fKind').value === 'decision' ? '' : 'none'; };
+        $('fCancel').onclick = back;
+        $('fSave').onclick = async () => {
+            const body = {
+                container: $('fContainer').value === '__new' ? $('fNew').value.trim() : $('fContainer').value,
+                newContainer: $('fContainer').value === '__new',
+                kind: $('fKind').value, name: $('fName').value.trim(), echo: $('fEcho').value.trim(), stimulus: $('fStimulus').value,
+                decision: $('fDecision').value.trim(), done: $('fDone').value.trim(), tags: $('fTags').value,
+            };
+            $('fSave').disabled = true; $('fOut').className = 'out'; $('fOut').textContent = 'saving…';
+            const r = await onSave(body);
+            $('fSave').disabled = false;
+            if (r.error) { $('fOut').className = 'out err'; $('fOut').textContent = r.error; return; }
+            $('fOut').textContent = 'saved';
+            go('echo/' + r.id);
+        };
+    }
+    async function showAdd(pane, container) {
+        pane.innerHTML = '<div class="lbl">Add a memory</div>' + formHtml(null, await containerOptions(container));
+        wireForm((body) => post('/api/engram', body));
+        $('fEcho').focus();
+    }
+    async function showForm(pane, e) {
+        pane.innerHTML = `<div class="actions"><button class="tiny" id="backBtn">← Back</button></div><div class="lbl">Edit this memory</div>` + formHtml(e, await containerOptions(e.container));
+        $('backBtn').onclick = back;
+        wireForm((body) => { const b = { ...body }; if (b.newContainer) { return post('/api/engram/' + encodeURIComponent(e.id), b); } delete b.newContainer; return post('/api/engram/' + encodeURIComponent(e.id), b); });
+    }
+
+    // --------------------------------------------------------------- live
+    let es = null;
+    let paused = false;
+    let held = [];
+    let sessionsById = {};
+    $('lpause').onclick = () => { paused = !paused; $('lpause').textContent = paused ? `Resume${held.length ? ' (' + held.length + ')' : ''}` : 'Pause'; if (!paused) { for (const ev of held) addEvent(ev, true); held = []; } };
+    $('lkind').onchange = $('lsession').onchange = () => applyFilters();
+    function applyFilters() {
+        const k = $('lkind').value;
+        const s = $('lsession').value;
+        for (const el of $('lstream').querySelectorAll('.ev')) el.style.display = (!k || el.dataset.kind === k) && (!s || el.dataset.session === s) ? '' : 'none';
+    }
+    function sessionHeader(id) {
+        const s = sessionsById[id];
+        const div = document.createElement('div');
+        div.className = 'sess';
+        div.dataset.session = id;
+        div.innerHTML = s ? `<b>${esc(s.id)}</b><span>${esc(s.deviceName || s.device)}</span><span>${esc(s.task || '')}</span><span>${s.engrams} memories · ${s.decisions} rulings</span><span class="${s.active ? 'live' : ''}">${s.active ? 'live' : s.rested ? 'rested' : 'open'}</span>` : `<b>${esc(id || 'unattributed')}</b>`;
+        return div;
+    }
+    function addEvent(ev, fresh) {
+        const stream = $('lstream');
+        if (stream.querySelector('.empty')) stream.innerHTML = '';
+        const sid = ev.session || 'unattributed';
+        let header = stream.querySelector(`.sess[data-session="${CSS.escape(sid)}"]`);
+        if (!header) { header = sessionHeader(sid); stream.prepend(header); if (![...$('lsession').options].some((o) => o.value === sid)) { const o = document.createElement('option'); o.value = sid; o.textContent = sid; $('lsession').appendChild(o); } }
+        if (ev.id && ev.edited) { const old = stream.querySelector(`.ev[data-id="${CSS.escape(ev.id)}"]`); if (old) old.remove(); }
+        const row = document.createElement('div');
+        row.className = 'ev' + (fresh ? ' new' : '');
+        row.dataset.kind = ev.kind || ev.type;
+        row.dataset.session = sid;
+        row.dataset.id = ev.id || '';
+        row.innerHTML = `<span class="mono dim">${hhmm(ev.when || ev.at)}</span><span class="line"><span class="kind ${esc(ev.kind || ev.type)}">${esc(ev.kind || ev.type)}</span>${ev.edited ? '<span class="kind edited">edited</span>' : ''}${esc(ev.line || ev.title || ev.echo || ev.file || '')}</span><span class="path">${esc(short(ev.container))} · ${esc(ev.device || '')}</span>`;
+        if (ev.id) row.onclick = () => go('echo/' + ev.id);
+        header.after(row);
+        applyFilters();
+    }
+    function startLive() {
+        if (es) return;
+        $('lstream').innerHTML = '';
+        es = new EventSource('/api/live');
+        es.onmessage = (m) => {
+            const ev = JSON.parse(m.data);
+            if (ev.type === 'hello') {
+                if (ev.error) { $('lstream').innerHTML = `<div class="empty">No memory yet. <a href="#setup">Open Setup</a> and pick a folder.</div>`; $('lstate').textContent = ''; return; }
+                sessionsById = Object.fromEntries((ev.sessions || []).map((s) => [s.id, s]));
+                const active = (ev.sessions || []).filter((s) => s.active).length;
+                const rec = (ev.recent || []).slice().reverse();
+                $('lstream').innerHTML = '';
+                for (const e of rec) addEvent({ ...e, type: 'engram', line: e.title || e.echo, edited: false }, false);
+                if (!rec.length) $('lstream').innerHTML = '<div class="empty">Nothing in the memory yet. It fills as sessions work, or <a href="#add">add one yourself</a>.</div>';
+                $('lstate').textContent = active ? `Listening. ${active} session${active === 1 ? '' : 's'} active.` : `No sessions active.${rec.length ? ' Last memory ' + age(rec[rec.length - 1].when) + ' ago.' : ''}`;
+            } else if (ev.type === 'engram' || ev.type === 'artefact') {
+                if (paused) { held.push(ev); $('lpause').textContent = `Resume (${held.length})`; } else addEvent(ev, true);
+                $('lstate').textContent = `Listening. Last memory ${ev.at ? age(ev.at) : 'just'} ago.`;
+                status();
+            } else if (ev.type === 'change' && ev.source === 'watch') {
+                api('/api/recent?n=1').then((r) => { const e = r[0]; if (e && !$('lstream').querySelector(`.ev[data-id="${CSS.escape(e.id)}"]`)) addEvent({ ...e, type: 'engram', line: e.title || e.echo, at: e.when }, true); });
+            } else if (ev.type === 'memory') { es.close(); es = null; startLive(); status(); }
+        };
+        es.onerror = () => { $('lstate').textContent = 'stream lost, reconnecting…'; };
+    }
+
+    // ------------------------------------------------------------- cortex
+    async function loadCortex(selected) {
+        const list = await api('/api/cortex');
+        if (list.error) { $('tree').textContent = list.error; return; }
+        $('tree').innerHTML = list.map((c) => {
+            const depth = c.path ? c.path.split('/').length : 0;
+            const name = c.path ? c.path.split('/').pop() : 'root';
+            const fresh = c.newest && Date.now() - parseInt(c.newest.slice(0, 9), 36) < 86400000;
+            return `<div style="--d:${depth * 14}px" data-path="${esc(c.path)}" title="${esc(c.title)}">${fresh ? '<span class="dot"></span>' : ''}${esc(name)} <small>${c.counts.engrams + c.counts.descendants}${c.decisions ? ' · ' + c.decisions + 'd' : ''}</small>${c.contradictions ? '<span class="flag">⚑ ' + c.contradictions + '</span>' : ''}${c.gaps ? '<span class="flag dim">gap</span>' : ''}</div>`;
+        }).join('');
+        for (const el of $('tree').querySelectorAll('div[data-path]')) el.onclick = () => { location.hash = 'cortex/' + el.dataset.path; };
+        const path = selected !== undefined ? decodeURIComponent(selected) : '';
+        for (const el of $('tree').querySelectorAll('div[data-path]')) el.classList.toggle('on', el.dataset.path === path);
+        showMap(path);
+    }
+    async function showMap(path) {
+        const m = await api('/api/map?path=' + encodeURIComponent(path));
+        const echos = await api('/api/echos?path=' + encodeURIComponent(path));
+        if (m.error) { $('mappane').innerHTML = esc(m.error); return; }
+        const crumbs = (path ? path.split('/') : []).map((seg, i, all) => `<span data-p="${esc(all.slice(0, i + 1).join('/'))}">${esc(seg)}</span>`).join(' / ');
+        $('mappane').innerHTML = `<div class="crumb"><span data-p="">root</span>${crumbs ? ' / ' + crumbs : ''}</div>
+            <h2>${esc(m.title)}</h2>
+            <div class="doc">${esc(m.digest) || '<span class="dim">No digest yet.</span>'}</div>
+            ${m.answers.length ? `<div class="lbl">Answers</div><div class="dim">${m.answers.map(esc).join(' · ')}</div>` : ''}
+            ${m.gaps.length ? `<div class="lbl">Known gaps</div><div class="amber">${m.gaps.map(esc).join('<br>')}</div>` : ''}
+            <div class="actions"><button class="tiny" id="addHere">Add a memory here</button><button class="tiny" id="searchHere">Search this region</button><span class="dim" style="align-self:center">${m.counts.engrams} here, ${m.counts.descendants} beneath, ${m.counts.children} children</span></div>
+            ${m.decisions.length ? `<div class="lbl">Rulings in force (${m.decisions.length})</div><div class="list">${m.decisions.map((d) => `<div data-id="${d.engram}">${esc(d.text)} <span class="dim">${esc(short(d.container))} · ${d.when.slice(0, 10)}</span></div>`).join('')}</div>` : ''}
+            ${m.superseded.length ? `<div class="lbl">Superseded (${m.superseded.length})</div><div class="list dim">${m.superseded.map((d) => `<div data-id="${d.engram}" style="text-decoration:line-through">${esc(d.text)}</div>`).join('')}</div>` : ''}
+            ${m.contradictions.length ? `<div class="lbl amber">Contradictions flagged</div><div class="list">${m.contradictions.map((x) => `<div data-id="${x.a}"><span class="kind contradicts">contradicts</span>${esc(x.aLine)} <span class="dim">vs</span> ${esc(x.bLine)}</div>`).join('')}</div>` : ''}
+            ${m.linksOut.length ? `<div class="lbl">Strongest links out</div><div class="list">${m.linksOut.map((h) => `<div data-p="${esc(h.path)}">${esc(h.path || 'root')} <span class="dim">${h.count}</span></div>`).join('')}</div>` : ''}
+            ${m.children.length ? `<div class="lbl">Children</div><div class="list">${m.children.map((c) => `<div data-p="${esc(c.path)}">${esc(c.title)} <span class="dim">${c.engrams} memories${c.decisions ? ', ' + c.decisions + ' rulings' : ''} · ${esc(c.line)}</span></div>`).join('')}</div>` : ''}
+            ${m.hubs.length ? `<div class="lbl">Hubs</div><div class="list">${m.hubs.map((h) => `<div data-id="${h.id}">${esc(h.line)} <span class="dim">${h.inlinks} in-links</span></div>`).join('')}</div>` : ''}
+            <div class="lbl">Memories here (${echos.length})</div><div class="list">${echos.map((e) => `<div data-id="${e.id}"><span class="kind ${e.kind}">${e.kind}</span>${esc(e.title || e.echo)} <span class="dim">${age(e.when)} ago</span></div>`).join('') || '<span class="dim">none</span>'}</div>`;
+        $('addHere').onclick = () => go('add/' + encodeURIComponent(path));
+        $('searchHere').onclick = () => { $('q').value = path.split('/').pop() || ''; go('search'); doSearch(); };
+        for (const el of $('mappane').querySelectorAll('[data-id]')) el.onclick = () => go('echo/' + el.dataset.id);
+        for (const el of $('mappane').querySelectorAll('[data-p]')) el.onclick = () => { location.hash = 'cortex/' + el.dataset.p; };
+    }
+
+    // -------------------------------------------------------------- setup
+    // One act (D-A967): pick the folder Engram writes the memories into.
+    // Everything else follows from it: the rules into CLAUDE.md, the
+    // command on the path. The list below says where things stand.
+    async function loadSetup() {
+        const s = await api('/api/setup-state');
+        const rulesOk = s.rulesInstalled === s.rulesVersion;
+        const cmdOk = !!(s.shim && s.shim.exists && s.shim.onPath);
+        const tick = (ok) => `<span class="state ${ok ? 'done' : 'todo'}">${ok ? 'ok' : 'to do'}</span>`;
+        const lines = [
+            ['The memory folder', s.exists, s.exists ? `${esc(s.repository)} (${s.stats.engrams} memories)` : (s.repository ? `${esc(s.repository)} is selected but there is no memory there` : 'none picked yet')],
+            ['Claude\'s instruction', rulesOk, rulesOk ? `version ${s.rulesVersion} in ${esc(s.claudeMd)}` : (s.rulesInstalled ? `version ${s.rulesInstalled} installed, this Engram has ${s.rulesVersion}` : `not yet in ${esc(s.claudeMd)}`)],
+            ['The engram command', cmdOk, s.shim ? (s.shim.exists ? (s.shim.onPath ? 'on your path' : `${esc(s.shim.dir)} is not on your path yet`) : 'not written yet') : ''],
+            ['This computer', !!s.device, s.device ? `${esc(s.device.name)}, Engram ${esc(s.version)}` : 'registered when the folder is picked'],
+        ];
+        const allOk = lines.every((l) => l[1]);
+        $('setup').innerHTML = `<div class="lbl">Setup</div>
+            <div class="step"><h3>Where Engram writes your memories ${tick(s.exists)}</h3>
+            <p>Pick one folder. Every memory lives there as a plain text note you can open, back up or move. Picking it does the rest: the whole instruction for working with Engram goes into Claude's CLAUDE.md, so every Claude session on this computer searches the memory first and writes to it as it works, and the <span class="mono">engram</span> command goes on your path.</p>
+            <div class="row2"><input type="text" id="suDir" value="${esc(s.repository || s.suggested || '')}" placeholder="a folder, e.g. C:\\ENGRAM"><button class="tiny" id="suBrowse">Browse…</button><button class="tiny primary" id="suUse">${s.exists ? 'Use this folder' : 'Use this folder'}</button></div>
+            <div class="out" id="suOut"></div></div>
+            <div class="step"><h3>Where things stand ${tick(allOk)}</h3><p>${allOk ? 'Everything is in place. Live shows memories as they arrive, Search finds anything, and the tray icon starts with Windows.' : 'Pick the folder above and this list fills in.'}</p><table class="lines">${lines.map((l) => `<tr><td class="k">${esc(l[0])}</td><td>${tick(l[1])}</td><td class="v">${l[2]}</td></tr>`).join('')}</table>
+            ${s.exists && !allOk ? '<div class="row2"><button class="tiny" id="suRules">Install the rules again</button><button class="tiny" id="suShim">Put the command on the path again</button></div>' : ''}</div>
+            ${s.exists ? `<div class="step"><h3>Start fresh</h3><p>Forget the selected memory and begin again from an empty Setup. The folder and every note in it stay on disk; nothing is deleted.</p><div class="row2"><button class="tiny" id="suForget">Forget this memory</button></div></div>` : ''}
+            <p style="max-width:820px"><a href="#how">How Engram works</a></p>`;
+        $('suBrowse').onclick = async () => { $('suOut').textContent = 'a folder window is open on your desktop…'; const r = await post('/api/pick-folder', { startAt: $('suDir').value.trim() }); $('suOut').textContent = r.path ? '' : 'cancelled'; if (r.path) $('suDir').value = r.path; };
+        $('suUse').onclick = async () => {
+            const dir = $('suDir').value.trim();
+            if (!dir) { $('suOut').className = 'out err'; $('suOut').textContent = 'type or browse to a folder first'; return; }
+            $('suUse').disabled = true; $('suOut').className = 'out'; $('suOut').textContent = 'setting up…';
+            const r = await post('/api/setup', { action: 'use', dir });
+            $('suUse').disabled = false;
+            if (r.error) { $('suOut').className = 'out err'; $('suOut').textContent = r.error; return; }
+            $('suOut').textContent = r.note || 'done';
+            await status();
+            loadSetup();
+        };
+        if ($('suRules')) $('suRules').onclick = async () => { const r = await post('/api/setup', { action: 'rules' }); $('suOut').textContent = r.error || r.note; loadSetup(); };
+        if ($('suShim')) $('suShim').onclick = async () => { const r = await post('/api/setup', { action: 'shim' }); $('suOut').textContent = r.error || r.note; loadSetup(); };
+        if ($('suForget')) $('suForget').onclick = async () => {
+            if (!confirm(`Forget ${s.repository}? Engram starts empty and Setup is the first thing again. The folder and its notes stay on disk.`)) return;
+            const r = await post('/api/setup', { action: 'forget' });
+            $('suOut').textContent = r.error || r.note;
+            await status();
+            loadSetup();
+        };
+    }
+
+    // The palette window is hidden, not closed: reopening shows the empty state again, with the recent searches.
+    window.__engramReset = () => { $('q').value = ''; lastResult = null; rows = []; sel = -1; location.hash = 'search'; emptyState(); $('q').focus(); };
+    if (PALETTE) document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') window.__engramReset(); });
+
+    // --------------------------------------------------------------- boot
+    status().then((s) => { if (s && !s.repository && !PALETTE && !location.hash) location.hash = 'setup'; });
+    setInterval(status, 10000);
+    route();
+    if (PALETTE) $('q').focus();
+})();
+</script>
+</body>
+</html>

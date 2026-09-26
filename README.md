@@ -6,7 +6,7 @@ retaught.
 
 ## Install
 
-Download **Engram Setup 0.3.7.exe** from this folder (or from the
+Download **Engram Setup 1.0.0.exe** from this folder (or from the
 Releases page) and run it. Engram appears in the system tray and starts
 with Windows from then on. Click the icon, open Setup, pick the folder
 your memories live in, and the instruction for Claude is installed with it.

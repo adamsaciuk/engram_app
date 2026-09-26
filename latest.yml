@@ -1,7 +1,7 @@
-version: 0.3.7
+version: 1.0.0
 files:
-  - url: Engram-Setup-0.3.7.exe
-    sha512: OcFkJW62AAwrme+8PGNTdj0QzAvPrJdPypBPlZAmxLcVrDIh3OrYqbnhCu95mIjp8fEXHe+iNYthhZThLkX21Q==
-path: Engram-Setup-0.3.7.exe
-sha512: OcFkJW62AAwrme+8PGNTdj0QzAvPrJdPypBPlZAmxLcVrDIh3OrYqbnhCu95mIjp8fEXHe+iNYthhZThLkX21Q==
-releaseDate: '2026-09-26T00:51:12.527Z'
+  - url: Engram-Setup-1.0.0.exe
+    sha512: al5tT+o8KUsKPOC3h88VW38oDEwYnt3wdyTGB/7PMGc+nPh+ba+pp9DCkXJL7ae5YiHJBPKs+yhj27+3wy+uLw==
+path: Engram-Setup-1.0.0.exe
+sha512: al5tT+o8KUsKPOC3h88VW38oDEwYnt3wdyTGB/7PMGc+nPh+ba+pp9DCkXJL7ae5YiHJBPKs+yhj27+3wy+uLw==
+releaseDate: '2026-09-26T01:49:55.539Z'

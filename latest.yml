@@ -1,7 +1,7 @@
-version: 1.1.0
+version: 1.1.1
 files:
-  - url: Engram-Setup-1.1.0.exe
-    sha512: 70E1Ak9Os15CibzgO45El17gYxuQY4rySNNt2QihgVnO065B8JQW901S+sXg5Xh/STU6+/Qvdoyov/6/1Wz7aA==
-path: Engram-Setup-1.1.0.exe
-sha512: 70E1Ak9Os15CibzgO45El17gYxuQY4rySNNt2QihgVnO065B8JQW901S+sXg5Xh/STU6+/Qvdoyov/6/1Wz7aA==
-releaseDate: '2026-09-28T14:18:19.431Z'
+  - url: Engram-Setup-1.1.1.exe
+    sha512: eFzjScXCWtyObjXWc1z5EKODEXZutpFi1NAv4tlO3LmDFmo0Fp8RNmvHhHfTg1LGmOYO8Lax0Kag/IPNoCMhmQ==
+path: Engram-Setup-1.1.1.exe
+sha512: eFzjScXCWtyObjXWc1z5EKODEXZutpFi1NAv4tlO3LmDFmo0Fp8RNmvHhHfTg1LGmOYO8Lax0Kag/IPNoCMhmQ==
+releaseDate: '2026-09-28T14:51:14.049Z'

@@ -6,8 +6,9 @@ retaught.
 
 ## Install
 
-Download **Engram Setup 1.1.1.exe** from this folder (or from the
-Releases page) and run it. Engram appears in the system tray and starts
+Download **[Engram Setup 1.1.2.exe](https://github.com/adamsaciuk/engram_app/releases/latest/download/Engram-Setup-1.1.2.exe)**
+(every version is on the [Releases page](https://github.com/adamsaciuk/engram_app/releases))
+and run it. One installer serves Intel, AMD and ARM PCs. Engram appears in the system tray and starts
 with Windows from then on. Click the icon, open Setup, pick the folder
 your memories live in, and the instruction for Claude is installed with it.
 
@@ -15,4 +16,5 @@ From 1.1.0 Engram updates itself: it installs each new release quietly
 when no session is running. Turn that off with Update automatically in
 the tray menu.
 
-Windows on ARM64. This repository holds the installer only.
+Windows, x64 and ARM64. The installer is on the Releases page only; this
+repository holds nothing else.

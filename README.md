@@ -8,7 +8,7 @@ retaught.
 
 ## Install
 
-Download **[Engram Setup 1.1.3.exe](https://github.com/adamsaciuk/engram_app/releases/latest/download/Engram-Setup-1.1.3.exe)**
+Download **[Engram Setup 1.1.4.exe](https://github.com/adamsaciuk/engram_app/releases/latest/download/Engram-Setup-1.1.4.exe)**
 (every version is on the [Releases page](https://github.com/adamsaciuk/engram_app/releases))
 and run it. One installer serves Intel, AMD and ARM PCs. Engram appears in the system tray and starts
 with Windows from then on. Click the icon, open Setup, pick the folder

@@ -17,4 +17,5 @@ when no session is running. Turn that off with Update automatically in
 the tray menu.
 
 Windows, x64 and ARM64. The installer is on the Releases page only; this
-repository holds nothing else.
+repository holds the README and the product page
+(https://adamsaciuk.github.io/engram_app/), nothing else.
